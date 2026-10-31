@@ -9,7 +9,7 @@ router = APIRouter(prefix="/jugadores", tags=["Jugadores"])
 # Helper para verificar que el jugador pertenece al usuario autenticado
 def verificar_propiedad(jugador_id: int, usuario_id: int):
     conn = get_connection()
-    jugador = conn.execute("SELECT usuario_id FROM jugadores WHERE id = ?", (jugador_id,)).fetchone()
+    jugador = conn.execute("SELECT usuario_id FROM jugadores WHERE id = %s", (jugador_id,)).fetchone()
     conn.close()
     if not jugador or jugador['usuario_id'] != usuario_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para modificar este jugador")
@@ -31,26 +31,26 @@ def obtener_mis_jugadores(
 ):
     conn = get_connection()
     
-    query = "SELECT * FROM jugadores WHERE usuario_id = ?"
+    query = "SELECT * FROM jugadores WHERE usuario_id = %s"
     params = [current_user['id']]
     
     if nombre:
-        query += " AND nombre LIKE ?"
+        query += " AND nombre LIKE %s"
         params.append(f"%{nombre}%")
     if posicion and posicion != "TODAS":
-        query += " AND (posicion_principal = ? OR posicion_secundaria LIKE ?)"
+        query += " AND (posicion_principal = %s OR posicion_secundaria LIKE %s)"
         params.extend([posicion, f"%{posicion}%"])
     if pais:
-        query += " AND pais LIKE ?"
+        query += " AND pais LIKE %s"
         params.append(f"%{pais}%")
     if valoracion_min is not None:
-        query += " AND valoracion >= ?"
+        query += " AND valoracion >= %s"
         params.append(valoracion_min)
     if valoracion_max is not None:
-        query += " AND valoracion <= ?"
+        query += " AND valoracion <= %s"
         params.append(valoracion_max)
     if habilitado is not None:
-        query += " AND habilitado = ?"
+        query += " AND habilitado = %s"
         params.append(int(habilitado))
         
     columnas_validas = ["valoracion", "nombre", "rango", "dorsal"]
@@ -59,7 +59,7 @@ def obtener_mis_jugadores(
     if orden not in ["ASC", "DESC"]:
         orden = "DESC"
     
-    query += f" ORDER BY {ordenar_por} {orden} LIMIT ? OFFSET ?"
+    query += f" ORDER BY {ordenar_por} {orden} LIMIT %s OFFSET %s"
     params.extend([limite, offset])
     
     jugadores = conn.execute(query, params).fetchall()
@@ -84,7 +84,7 @@ def agregar_jugador(jugador: JugadorCreate, current_user: dict = Depends(get_cur
             """INSERT INTO jugadores 
                (nombre, valoracion, posicion_principal, posicion_secundaria, pais, equipo, 
                 dorsal, equipacion, rango, habilitado, programa, imagen_url, usuario_id) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (
                 jugador.nombre, jugador.valoracion, jugador.posicion_principal, 
                 jugador.posicion_secundaria, jugador.pais, jugador.equipo,
@@ -103,7 +103,7 @@ def agregar_jugador(jugador: JugadorCreate, current_user: dict = Depends(get_cur
 @router.delete("/")
 def eliminar_todos_mis_jugadores(current_user: dict = Depends(get_current_user)):
     conn = get_connection()
-    conn.execute("DELETE FROM jugadores WHERE usuario_id = ?", (current_user['id'],))
+    conn.execute("DELETE FROM jugadores WHERE usuario_id = %s", (current_user['id'],))
     conn.commit()
     conn.close()
     return {"mensaje": "Todos tus jugadores han sido eliminados"}
@@ -120,26 +120,26 @@ def buscar_jugadores(
     current_user: dict = Depends(get_current_user)
 ):
     conn = get_connection()
-    query = "SELECT * FROM jugadores WHERE usuario_id = ?"
+    query = "SELECT * FROM jugadores WHERE usuario_id = %s"
     params = [current_user['id']]
     
     if nombre:
-        query += " AND nombre LIKE ?"
+        query += " AND nombre LIKE %s"
         params.append(f"%{nombre}%")
     if posicion:
-        query += " AND (posicion_principal = ? OR posicion_secundaria LIKE ?)"
+        query += " AND (posicion_principal = %s OR posicion_secundaria LIKE %s)"
         params.extend([posicion, f"%{posicion}%"])
     if pais:
-        query += " AND pais = ?"
+        query += " AND pais = %s"
         params.append(pais)
     if equipo:
-        query += " AND equipo = ?"
+        query += " AND equipo = %s"
         params.append(equipo)
     if rango:
-        query += " AND rango = ?"
+        query += " AND rango = %s"
         params.append(rango)
     if habilitado is not None:
-        query += " AND habilitado = ?"
+        query += " AND habilitado = %s"
         params.append(int(habilitado))
     
     jugadores = conn.execute(query, params).fetchall()
@@ -151,7 +151,7 @@ def buscar_jugadores(
 def top_jugadores(limit: int = 11, current_user: dict = Depends(get_current_user)):
     conn = get_connection()
     jugadores = conn.execute(
-        "SELECT * FROM jugadores WHERE usuario_id = ? ORDER BY valoracion DESC LIMIT ?",
+        "SELECT * FROM jugadores WHERE usuario_id = %s ORDER BY valoracion DESC LIMIT %s",
         (current_user['id'], limit)
     ).fetchall()
     conn.close()
@@ -162,7 +162,7 @@ def top_jugadores(limit: int = 11, current_user: dict = Depends(get_current_user
 def obtener_por_posicion(posicion: str, current_user: dict = Depends(get_current_user)):
     conn = get_connection()
     jugadores = conn.execute(
-        "SELECT * FROM jugadores WHERE usuario_id = ? AND (posicion_principal = ? OR posicion_secundaria LIKE ?)",
+        "SELECT * FROM jugadores WHERE usuario_id = %s AND (posicion_principal = %s OR posicion_secundaria LIKE %s)",
         (current_user['id'], posicion, f"%{posicion}%")
     ).fetchall()
     conn.close()
@@ -172,7 +172,7 @@ def obtener_por_posicion(posicion: str, current_user: dict = Depends(get_current
 @router.get("/count/")
 def contar_jugadores(current_user: dict = Depends(get_current_user)):
     conn = get_connection()
-    count = conn.execute("SELECT COUNT(*) as total FROM jugadores WHERE usuario_id = ?", (current_user['id'],)).fetchone()["total"]
+    count = conn.execute("SELECT COUNT(*) as total FROM jugadores WHERE usuario_id = %s", (current_user['id'],)).fetchone()["total"]
     conn.close()
     return {"total_jugadores": count}
 
@@ -180,8 +180,8 @@ def contar_jugadores(current_user: dict = Depends(get_current_user)):
 @router.get("/estadisticas/")
 def estadisticas_jugadores(current_user: dict = Depends(get_current_user)):
     conn = get_connection()
-    total = conn.execute("SELECT COUNT(*) as total FROM jugadores WHERE usuario_id = ?", (current_user['id'],)).fetchone()["total"]
-    promedio_valoracion = conn.execute("SELECT AVG(valoracion) as promedio FROM jugadores WHERE usuario_id = ?", (current_user['id'],)).fetchone()["promedio"]
+    total = conn.execute("SELECT COUNT(*) as total FROM jugadores WHERE usuario_id = %s", (current_user['id'],)).fetchone()["total"]
+    promedio_valoracion = conn.execute("SELECT AVG(valoracion) as promedio FROM jugadores WHERE usuario_id = %s", (current_user['id'],)).fetchone()["promedio"]
     conn.close()
     return {
         "total_jugadores": total,
@@ -193,7 +193,7 @@ def estadisticas_jugadores(current_user: dict = Depends(get_current_user)):
 def obtener_jugador(jugador_id: int, current_user: dict = Depends(get_current_user)):
     conn = get_connection()
     jugador = conn.execute(
-        "SELECT * FROM jugadores WHERE id = ? AND usuario_id = ?",
+        "SELECT * FROM jugadores WHERE id = %s AND usuario_id = %s",
         (jugador_id, current_user['id'])
     ).fetchone()
     conn.close()
@@ -229,12 +229,12 @@ def actualizar_jugador(jugador_id: int, datos: JugadorUpdate, current_user: dict
     
     for campo, valor in campos.items():
         if valor is not None:
-            update_fields.append(f"{campo} = ?")
+            update_fields.append(f"{campo} = %s")
             values.append(valor)
             
     if update_fields:
         values.append(jugador_id)
-        query = f"UPDATE jugadores SET {', '.join(update_fields)} WHERE id = ?"
+        query = f"UPDATE jugadores SET {', '.join(update_fields)} WHERE id = %s"
         conn.execute(query, values)
         conn.commit()
         
@@ -248,7 +248,7 @@ def eliminar_jugador(jugador_id: int, current_user: dict = Depends(get_current_u
     verificar_propiedad(jugador_id, current_user['id'])
     
     conn = get_connection()
-    conn.execute("DELETE FROM jugadores WHERE id = ?", (jugador_id,))
+    conn.execute("DELETE FROM jugadores WHERE id = %s", (jugador_id,))
     conn.commit()
     conn.close()
     return {"mensaje": "Jugador eliminado"}

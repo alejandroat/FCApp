@@ -53,7 +53,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     
     try:
         conn = get_connection()
-        user = conn.execute("SELECT * FROM usuarios WHERE id = ?", (user_id,)).fetchone()
+        user = conn.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,)).fetchone()
         conn.close()
         
         if user is None:
