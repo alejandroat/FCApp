@@ -1,0 +1,17 @@
+# Dependencias del Frontend (Streamlit)
+streamlit==1.38.0
+plotly==5.24.1
+pandas==2.2.2
+numpy==1.26.4
+
+# Dependencias del Backend (FastAPI) y compartidas
+fastapi==0.115.0
+uvicorn==0.30.6
+pydantic==2.9.2
+requests==2.32.3
+passlib==1.7.4
+bcrypt==4.2.0
+python-jose==3.3.0
+python-multipart==0.0.9
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
